@@ -1,6 +1,7 @@
 """Shared helpers: load the data, build features, split by time, set up MLflow.
 
-You don't need to change this file during the session. The scripts 1_ to 4_ import it.
+The scripts 1_ to 4_ import this file. The only part you may want to change is the
+"mine" feature set in make_features (optional, for when you have time).
 """
 
 import os
@@ -44,6 +45,7 @@ def make_features(bikes: pd.DataFrame, feature_set: str) -> pd.DataFrame:
     raw:      every column as it is; text columns become 0/1 columns
     hour_onehot: also treat each hour as its own category, separately for
                  working days and days off (commuter peaks only happen on working days)
+    mine:     your own idea, see below
     """
     raw = bikes[
         ["season", "year", "month", "hour", "holiday", "weekday", "workingday",
@@ -57,6 +59,12 @@ def make_features(bikes: pd.DataFrame, feature_set: str) -> pd.DataFrame:
         day_type = bikes["workingday"].astype(str).map({"True": "work", "False": "off"})
         hour_by_day_type = pd.get_dummies("h" + bikes["hour"].astype(str) + "_" + day_type, dtype=float)
         return pd.concat([features, hour_by_day_type], axis="columns")
+    if feature_set == "mine":
+        # OPTIONAL: add your own columns to `features`, then set FEATURES = "mine" in 1_train.py.
+        # Ideas: a 0/1 column for rush hour (7-9 and 16-19 on working days),
+        # temperature squared, "is it raining", or start from hour_onehot and add to it.
+        # Example: features["is_rush_hour"] = bikes["hour"].isin([7, 8, 9, 16, 17, 18, 19]).astype(float)
+        return features
     raise ValueError(f"unknown feature_set: {feature_set}")
 
 
