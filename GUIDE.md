@@ -1,202 +1,262 @@
-# Session 9 guide: from a model on your laptop to a model a business can use
+# Session 9 guide: build a model and keep a record of every try
 
-Follow this page step by step. Each part ends with a **Check**: what you should see.
-If your screen looks different, raise your hand.
+**The task.** A bike-rental company wants to know how many bikes people will rent each hour,
+so it can move bikes to the right stations. You build that model with sklearn, like in the last sessions.
+New today: you record every try in **MLflow**, so you, and your team, can see what was tried and what worked.
+Everything runs in **Databricks**, in your browser. You install nothing.
 
-**What you build today.** A model that predicts how many bikes people rent each hour.
-You record every training attempt in MLflow, pick the best model, and replace it when new data arrives.
-Everything runs in Databricks, in your browser. You install nothing.
+Each part ends with a **Check**: what you should see. If your screen looks different, raise your hand.
 
-**Contents**
+Keep [CHEATSHEET.md](CHEATSHEET.md) open next to this guide: it has every MLflow command you need today.
 
-| Part | What you do | Time |
-|---|---|---|
-| 0 | Before class: accounts | at home |
-| 1 | Your own copy of the project on GitHub | 5 min |
-| 2 | Open it in Databricks | 5 min |
-| 3 | First run | 5 min |
-| 4 | Make the training script record itself | 10 min |
-| 5 | Experiment and compare | 15 min |
-| 6 | Write a run yourself, from scratch | 15 min |
-| 7 | Pick a champion and use it | 5 min |
-| 8 | A new month of data arrives | 5 min |
-| 9 | Save your work to GitHub | 5 min |
-| | MLflow cheat sheet, problems and fixes, words, what to read | |
+| Part | What you do |
+|---|---|
+| 1 | Accounts |
+| 2 | Your own copy of the project on GitHub |
+| 3 | Open it in Databricks |
+| 4 | Look at the data (optional scratchpad) |
+| 5 | Step 1: a model, no MLflow yet |
+| 6 | Step 2: turn it into an MLflow run |
+| 7 | Step 3: record your settings |
+| 8 | Step 4: record your score |
+| 9 | Find your runs in Databricks |
+| 10 | Step 5: save the model |
+| 11 | Try more models and compare |
+| 12 | Save your work to GitHub |
 
 ---
 
-## Part 0 — Before class
+## Part 1 — Accounts
 
-1. **GitHub.** Make sure you can log in at [github.com](https://github.com).
-2. **Databricks.** Search for **Databricks Free Edition** and sign up. Use your normal email.
-   Free Edition is free, for learning, and needs no credit card.
+1. **GitHub:** log in at [github.com](https://github.com).
+2. **Databricks:** search for **Databricks Free Edition**, sign up with your email, and log in. It is free, for learning, no credit card.
 
-**Check:** you can log in to both websites.
+**Check:** you are logged in to both.
 
-## Part 1 — Your own copy of the project
+## Part 2 — Your own copy of the project
 
-The course project is a **template**: a starting point that you copy. Teams start new projects like this.
+The project is a **template**: a starting point you copy. Teams start new projects like this.
 
 1. Open **github.com/alexonov/redi-bike-demand**.
 2. Click the green button **Use this template** → **Create a new repository**.
-3. Owner: you. Repository name: for example `bike-demand`. Keep it **Public** (so Databricks can read it).
+3. Repository name: for example `bike-demand`. Keep it **Public** (so Databricks can read it).
 4. Click **Create repository**.
 5. On your new repo page, click the green **Code** button and copy the **HTTPS** URL.
    It looks like `https://github.com/YOUR-NAME/bike-demand.git`.
 
-**Check:** the page shows **your** name in the top left, not `alexonov`.
+**Check:** the page shows **your** GitHub name in the top left, not `alexonov`.
 
-## Part 2 — Open it in Databricks
+## Part 3 — Open it in Databricks
 
 A **Git folder** is a copy of your GitHub repo inside Databricks.
 
-1. Log in to Databricks.
-2. In the left menu click **Workspace**. Open **Users** → your email.
-3. Top right: **Create** → **Git folder**.
-4. Paste your repo URL. The provider (GitHub) and name fill in by themselves.
-5. Click **Create Git folder**.
+1. In Databricks, left menu: **Workspace** → **Users** → your email.
+2. Top right: **Create** → **Git folder**.
+3. Paste your repo URL. Click **Create Git folder**.
 
-**Check:** you see a folder with `1_train.py`, `2_register.py`, `bikes.py`, `data`, and more.
+**Check:** you see `data`, `train.py`, `GUIDE.md`, `CHEATSHEET.md`.
 
-## Part 3 — First run
+## Part 4 — Look at the data (optional scratchpad)
 
-1. Click `1_train.py` to open it.
-2. Click **Run** at the top. The first time, Databricks needs about a minute to start a computer for you.
+A **notebook** is good for looking around: run one small piece, see the result. Use it as a scratchpad.
+Your model goes into `train.py`, a normal Python file, so it is clean and runs from top to bottom.
 
-**Check:** below the code you see a line like:
+1. In your Git folder: **Create** → **Notebook**. Name it `scratchpad`.
+2. In the first cell:
+   ```python
+   import pandas as pd
+   bikes = pd.read_csv("data/bike_sharing_hourly.csv")
+   bikes.head()
+   ```
+3. Run the cell (Shift + Enter).
+
+The data: one row = one hour, Washington DC, 2011–2012.
+
+| Column | Meaning |
+|---|---|
+| `count` | bikes rented in that hour. **This is what we predict.** |
+| `year` | 0 = 2011, 1 = 2012 |
+| `month`, `hour`, `weekday` | when |
+| `holiday`, `workingday` | True / False |
+| `season`, `weather` | text, for example `spring`, `clear`, `rain` |
+| `temp`, `feel_temp`, `humidity`, `windspeed` | the weather in numbers |
+
+**Check:** you see a table with these columns.
+
+## Part 5 — Step 1: a model, no MLflow yet
+
+This is your normal sklearn routine. Open `train.py`.
+
+1. Copy these lines into `train.py`. They load the data and split it **by time**: the model learns from 2011
+   and is checked on January–June 2012. Like in real life: we predict a future the model has not seen.
+   ```python
+   import pandas as pd
+
+   bikes = pd.read_csv("data/bike_sharing_hourly.csv")
+   features = ["hour", "weekday", "month", "temp", "humidity", "windspeed"]
+
+   # split by time: learn from 2011, check on the first half of 2012
+   train = bikes[bikes["year"] == 0]
+   valid = bikes[(bikes["year"] == 1) & (bikes["month"] <= 6)]
+   ```
+2. Now write the rest yourself, like in the last sessions:
+   - import `LinearRegression` and `mean_absolute_error`
+   - make the model, `fit` it on `train[features]` and `train["count"]`
+   - `predict` on `valid[features]`
+   - compute the MAE against `valid["count"]` and `print` it
+3. Click **Run** at the top. The first run takes about a minute.
+
+**Check:** the output below your code shows an MAE of about **122**: on average the model misses by 122 bikes per hour.
+
+<details><summary>Show the code for step 1</summary>
+
+```python
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+bikes = pd.read_csv("data/bike_sharing_hourly.csv")
+features = ["hour", "weekday", "month", "temp", "humidity", "windspeed"]
+
+# split by time: learn from 2011, check on the first half of 2012
+train = bikes[bikes["year"] == 0]
+valid = bikes[(bikes["year"] == 1) & (bikes["month"] <= 6)]
+
+model = LinearRegression()
+model.fit(train[features], train["count"])
+predictions = model.predict(valid[features])
+mae = mean_absolute_error(valid["count"], predictions)
+print("MAE:", mae)
 ```
-run 6b38e4...: linear + raw -> validation MAE 145.1 bikes/hour, RMSE 179.5
+</details>
+
+## Part 6 — Step 2: turn it into an MLflow run
+
+A **run** is one training try. An **experiment** is a folder of runs.
+
+1. At the top of `train.py`, add `import mlflow`.
+2. Below the imports, choose the experiment (use **your** Databricks email):
+   ```python
+   mlflow.set_experiment("/Users/you@example.com/bike-demand")
+   ```
+3. Put the model lines inside a run. Write `with mlflow.start_run(run_name="linear regression"):`
+   and **indent** everything from `model = ...` to `print(...)` under it:
+   ```python
+   with mlflow.start_run(run_name="linear regression"):
+       model = LinearRegression()
+       model.fit(train[features], train["count"])
+       predictions = model.predict(valid[features])
+       mae = mean_absolute_error(valid["count"], predictions)
+       print("MAE:", mae)
+   ```
+4. Run the file.
+
+**Check:** the output now also shows a line **View run linear regression at: https://…**.
+
+## Part 7 — Step 3: record your settings
+
+MLflow wants your settings as a **dictionary**: names and values. Two lines, inside the run (indented):
+
+```python
+    params = {"model": "linear regression", "features": ", ".join(features)}   # 1. make the dictionary
+    mlflow.log_params(params)                                                  # 2. give it to MLflow
 ```
-**MAE** is the average miss: on average this model is wrong by 145 bikes per hour. Bad! We fix it soon.
 
-## Part 4 — Make the training script record itself
+`", ".join(features)` turns the list of features into one text, so MLflow can store it.
 
-Right now the script trains a model, prints a score, and forgets everything.
-You add three lines so MLflow keeps a record of each run.
+**Check:** run again. No errors.
 
-1. In `1_train.py`, find **TODO 1**, **TODO 2** and **TODO 3**.
-2. Write the code below each TODO. The hints tell you which MLflow command to use; see also the cheat sheet at the end.
-3. Run the file again.
-4. In the left menu click **Experiments** → `bike-demand`. Click your newest run.
+## Part 8 — Step 4: record your score
 
-**Check:** the run page shows **Parameters** (`model`, `features`), **Metrics** (`val_mae` = 145.1)
-and, under **Artifacts**, a folder `model`.
+Same idea: a dictionary with the score. Inside the run, after the MAE is computed:
 
-Stuck? Open `solution/1_train.py` and copy the lines. That's fine: the point is to know where each line goes.
+```python
+    mlflow.log_metrics({"mae": mae})
+```
 
-## Part 5 — Experiment and compare
+**Check:** run again. No errors.
 
-Change the settings at the top of `1_train.py`, run, and repeat. **Change one thing at a time.**
-Before you start: write down which run you think will win.
+## Part 9 — Find your runs in Databricks
 
-| Run | `MODEL` | `FEATURES` | `MAX_DEPTH` | Question |
-|---|---|---|---|---|
-| 1 | `"linear"` | `"raw"` | — | baseline (you did this already) |
-| 2 | `"linear"` | `"hour_onehot"` | — | does a better feature help? |
-| 3 | `"forest"` | `"raw"` | `5` | does a different model help? |
-| 4 | `"forest"` | `"raw"` | `15` | does one setting matter? |
-| 5 | `"forest"` | `"hour_onehot"` | `15` | both together |
-| 6+ | your choice | `"mine"` | your choice | your own idea (see below) |
+1. Click the **View run** link in the output. Or: left menu **Experiments** → `bike-demand` → click a run name.
+2. On the run page, find **Parameters**: `model` and `features`. Find **Metrics**: `mae`.
+3. Go back to the experiment `bike-demand`. You see a table: one row per run.
+   Your first runs (from before Part 7) have no parameters or metrics. That's fine.
 
-- **forest** (random forest) = many decision trees, each a bit different; the prediction is the average of their answers.
-- **hour_onehot** = hour becomes many yes/no columns, one per hour, separately for work days and days off. Rush hour only happens on work days.
-- **mine** = your own features. Open `bikes.py`, search for `"mine"`, add columns. There is an example to start from.
+**Check:** you see your latest run with `mae` about 122.
 
-**Compare:** Experiments → `bike-demand` → click the `val_mae` column to sort.
-Tick 2 to 5 runs → **Compare**. You see settings and scores side by side.
+## Part 10 — Step 5: save the model
 
-**Check:** you have at least 5 runs, and you can say which one has the lowest `val_mae`.
+Inside the run, as the last line:
 
-## Part 6 — Write a run yourself, from scratch
+```python
+    mlflow.sklearn.log_model(model, "model")
+```
 
-`1_train.py` used helpers. Now you write all the MLflow code yourself.
+**Check:** run again. On the run page, open **Artifacts**: there is a folder `model`.
+Your model is saved with its settings and score. Anyone in your team could load it later.
 
-1. Open `5_from_scratch.py`.
-2. Change `EMAIL` to the email you log in to Databricks with.
-3. Fill in TODO 1 to 5. Use the cheat sheet below.
-4. Run it. It trains a decision tree 4 times, with `max_depth` 3, 6, 10 and 15.
-5. Open **Experiments** → `bike-scratch`. Compare the 4 runs.
+<details><summary>Show the full train.py after step 5</summary>
 
-**Check:** 4 runs, each with `max_depth` and `val_mae`. Which depth is best?
+```python
+import mlflow
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
 
-**Bonus 1:** draw actual vs predicted with matplotlib, and save the picture in the run with `mlflow.log_figure`.
-**Bonus 2:** delete your logging lines, add `mlflow.sklearn.autolog()` at the top, and run again. What does MLflow record by itself?
+mlflow.set_experiment("/Users/you@example.com/bike-demand")
 
-Stuck? `solution/5_from_scratch.py`.
+bikes = pd.read_csv("data/bike_sharing_hourly.csv")
+features = ["hour", "weekday", "month", "temp", "humidity", "windspeed"]
 
-## Part 7 — Pick a champion and use it
+# split by time: learn from 2011, check on the first half of 2012
+train = bikes[bikes["year"] == 0]
+valid = bikes[(bikes["year"] == 1) & (bikes["month"] <= 6)]
 
-1. Run `2_register.py`. It finds the run with the lowest `val_mae` in `bike-demand`,
-   registers its model (version 1), and puts the label **champion** on it.
-2. In the left menu click **Catalog** → `workspace` → `default` → **Models** → `bike_demand`.
-3. Run `3_predict.py`. It loads "the champion" by name and predicts an average June work day, hour by hour.
+with mlflow.start_run(run_name="linear regression"):
+    model = LinearRegression()
+    model.fit(train[features], train["count"])
+    predictions = model.predict(valid[features])
+    mae = mean_absolute_error(valid["count"], predictions)
+    print("MAE:", mae)
 
-**Check:** in Catalog you see version 1 with the label `champion`. `3_predict.py` prints a table of hours with actual and predicted bikes.
+    params = {"model": "linear regression", "features": ", ".join(features)}
+    mlflow.log_params(params)
+    mlflow.log_metrics({"mae": mae})
+    mlflow.sklearn.log_model(model, "model")
+```
+</details>
 
-Why a label? Whoever uses the forecast asks for "the champion". They don't need to know which run won.
-When a better model comes, we move the label. Their code stays the same.
+## Part 11 — Try more models and compare
 
-## Part 8 — A new month of data arrives
+Now improve the model. **Change one thing at a time**, run, and look at the experiment.
+Each time, change the `run_name` and the `params` dictionary, so you know later what each run was.
 
-It is now July 2012. Is our champion still the best we can do?
+Ideas, from easy to harder:
 
-1. Run `4_new_month.py`. It:
-   - checks the champion on July,
-   - trains the same recipe again on all data up to June (a "challenger"),
-   - registers the challenger as a new version,
-   - moves the `champion` label to it, **only if** it is better on July.
-2. Look in **Catalog** → `bike_demand` again.
+| Idea | What to change |
+|---|---|
+| A decision tree | `from sklearn.tree import DecisionTreeRegressor`, `DecisionTreeRegressor(max_depth=5)` |
+| Deeper or shallower tree | `max_depth` 3, 5, 10, 15. Put `max_depth` in `params` too! |
+| A random forest (many trees, answers averaged) | `from sklearn.ensemble import RandomForestRegressor` |
+| More features | add `"workingday"`, `"holiday"`, `"feel_temp"` to the `features` list |
+| Text columns | `season` and `weather` are text: turn them into 0/1 columns with `pd.get_dummies` first |
+| Your own feature | for example a column that is 1 in rush hour (7–9 and 16–19) and 0 otherwise |
 
-**Check:** you see version 2. Which version has the `champion` label now?
+**Compare:** left menu **Experiments** → `bike-demand`. Click the `mae` column header to sort.
+Tick 2 or more runs → **Compare**: settings and scores side by side.
 
-People rented many more bikes in 2012 than in 2011. A model trained on old data gets worse over time.
-This is called **data drift**, and it is why real models are retrained.
+**Check:** you have several runs, and you can say which one has the lowest `mae` and why you think it won.
 
-## Part 9 — Save your work to GitHub
+## Part 12 — Save your work to GitHub
 
 1. In your Git folder, click the branch name (`main`) at the top.
-2. You see your changed files. Write a short message, for example `fill in MLflow logging`.
-3. Click **Commit & Push**.
-4. If Databricks asks you to connect GitHub, follow the steps it shows.
+2. You see your changed files. Write a short message, for example `train with mlflow`.
+3. Click **Commit & Push**. If Databricks asks you to connect GitHub, follow the steps it shows.
 
 **Check:** on github.com, your repo shows your new commit.
 
 ---
-
-## MLflow cheat sheet
-
-```python
-import mlflow
-
-# where runs go: one experiment = one folder of runs
-mlflow.set_experiment("/Users/you@example.com/my-experiment")
-
-# one run = everything inside "with"
-with mlflow.start_run(run_name="my first run"):
-    mlflow.log_param("max_depth", 5)                    # one setting
-    mlflow.log_params({"model": "tree", "depth": 5})    # many settings
-    mlflow.log_metric("val_mae", 87.3)                  # one score
-    mlflow.log_metrics({"val_mae": 87.3, "val_rmse": 120.1})
-    mlflow.set_tag("written_by", "me")                  # a note
-    mlflow.log_figure(fig, "plot.png")                  # a matplotlib picture
-    mlflow.sklearn.log_model(model, artifact_path="model",
-                             serialization_format="cloudpickle")   # the trained model
-
-# or: let MLflow record settings, training scores and the model by itself
-mlflow.sklearn.autolog()
-
-# find runs, best first (returns a pandas table)
-runs = mlflow.search_runs(order_by=["metrics.val_mae ASC"])
-
-# keep a model: register it, put a label on it
-version = mlflow.register_model(f"runs:/{run_id}/model", "workspace.default.my_model")
-mlflow.MlflowClient().set_registered_model_alias("workspace.default.my_model", "champion", version.version)
-
-# use it anywhere, by label
-model = mlflow.sklearn.load_model("models:/workspace.default.my_model@champion")
-```
-
-Note: we write `serialization_format="cloudpickle"` so the same code also works with newer MLflow on a laptop.
 
 ## Problems and fixes
 
@@ -204,42 +264,33 @@ Note: we write `serialization_format="cloudpickle"` so the same code also works 
 |---|---|
 | No **Use this template** button | You are not logged in to GitHub |
 | Git folder: "repository not found" | You pasted the template URL, not your own. Or your repo is private |
-| `ModuleNotFoundError: No module named 'bikes'` | You ran a file outside your Git folder, or moved files |
-| `FileNotFoundError: data/bike_sharing_hourly.csv` | Same: run the file from inside your Git folder |
-| `5_from_scratch.py`: an error about the experiment or a path | Check `EMAIL`: it must be exactly the email you log in to Databricks with |
-| `2_register.py`: no runs or `val_mae` missing | Part 4 not finished: your runs have no `val_mae` yet |
+| `FileNotFoundError: data/bike_sharing_hourly.csv` | Run the file from inside your Git folder |
+| Error about the experiment path | Check the email in `set_experiment`: exactly the one you log in to Databricks with |
+| `IndentationError` | All lines inside `with mlflow.start_run(...):` need the same 4 spaces in front |
+| `could not convert string to float: 'spring'` | `season` or `weather` is text: use `pd.get_dummies` first, or leave it out |
 | Run takes very long | The first start is slow. Wait 2–3 minutes, then refresh the page |
-| A run you don't want | Experiments → tick it → **Delete** |
 
 ## Words
 
 | Word | Meaning |
 |---|---|
 | Databricks | A website where a team keeps code, data and computers in one place |
-| Serverless compute | The computer that runs your code. It starts when you press Run |
 | Git folder | A copy of your GitHub repo inside Databricks |
+| Notebook | A file of small code pieces (cells) you run one at a time. Good as a scratchpad |
 | MLflow | A logbook for model training |
 | Experiment | A folder of runs for one problem |
-| Run | One training attempt |
-| Parameter | A setting you chose (model type, depth) |
-| Metric | A score (validation MAE) |
-| Registered model | A model we keep, with versions 1, 2, 3… |
-| Alias / label | A name tag on one version. `champion` = the one in use |
+| Run | One training try |
+| Parameter | A setting you chose: model type, depth, features |
+| Metric | A score: MAE |
 | MAE | Mean absolute error: the average miss, here in bikes per hour |
-| Data drift | The world changes after training, so the model gets worse |
 
-## What to read next
+## Want to go deeper?
 
 Chip Huyen, *Designing Machine Learning Systems* (O'Reilly, 2022). Very practical. Start with:
 - **Chapter 1** — ML in a business vs ML in a course
 - **Chapter 2** — ML work as a loop you go round many times
 - **Chapter 6** — model development and offline evaluation; the section on experiment tracking is today's topic
 - **Chapters 8–9** — why models get worse over time (data drift) and how teams retrain them
-
-**Try at home:** record the runs of your regression challenge in MLflow, with the same commands.
-
-**Want to work from your own laptop later?** Databricks has a command-line tool (Databricks CLI) and a VS Code extension.
-You don't need them for this course.
 
 ---
 Data: Capital Bikeshare hourly rentals, Washington DC, 2011–2012 (Fanaee-T and Gama, UCI Machine Learning Repository, CC BY 4.0). The bike-rental company in the story is invented.

@@ -12,21 +12,11 @@ Original dataset: Fanaee-T and Gama (2013), UCI Machine Learning Repository, CC 
 
 ## Start here
 
-**Follow [GUIDE.md](GUIDE.md)** step by step: setup, the exercises, an MLflow cheat sheet, and fixes for common problems.
+1. **Follow [GUIDE.md](GUIDE.md)** step by step.
+2. Keep **[CHEATSHEET.md](CHEATSHEET.md)** open: every MLflow command you need today.
+3. You write your model in `train.py`. The data is in `data/`.
 
-## The files
-
-| File | What it does |
-|---|---|
-| `1_train.py` | Trains one model and logs it to MLflow as one run. **You fill in the TODOs.** |
-| `2_register.py` | Finds the run with the lowest error, registers its model, labels it `champion`. |
-| `3_predict.py` | Loads "the champion" by name and forecasts a June working day. |
-| `4_new_month.py` | July data arrives. Retrains, compares with the champion, moves the label if the new one is better. |
-| `5_from_scratch.py` | Write a full MLflow run yourself, tuning a decision tree. **You fill in the TODOs.** |
-| `bikes.py` | Shared helpers: data, features, time split. Optional: your own features under `"mine"`. |
-| `solution/` | Finished versions of the files with TODOs. |
-
-## Read next
+## Want to go deeper?
 
 Chip Huyen, *Designing Machine Learning Systems* (O'Reilly, 2022):
 - Chapter 1: why ML in a business is different from ML in a course
