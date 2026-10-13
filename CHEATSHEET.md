@@ -46,6 +46,8 @@ A metric is a number that says how good the model is, for example the MAE.
 | `mlflow.log_metric(name, value)` | one name and one number | `mlflow.log_metric("mae", mae)` |
 | `mlflow.log_metrics(dictionary)` | a dictionary of names and numbers | `mlflow.log_metrics({"mae": mae, "rmse": rmse})` |
 
+Use the **same metric name in every run** (`mae`), so all runs appear together in one chart.
+
 ## 5. Save the trained model
 
 | Command | What you give it | Example |

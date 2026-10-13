@@ -174,6 +174,9 @@ Same idea: a dictionary with the score. Inside the run, after the MAE is compute
     mlflow.log_metrics({"mae": mae})
 ```
 
+**Always call it `mae`**, the same name in every run, whatever the model. Then MLflow can put all your runs
+in one chart. If one run says `mae` and another says `tree_mae`, they end up in two separate charts.
+
 **Check:** run again. No errors.
 
 ## Part 9 — Find your runs in Databricks
@@ -243,8 +246,10 @@ Ideas, from easy to harder:
 | Text columns | `season` and `weather` are text: turn them into 0/1 columns with `pd.get_dummies` first |
 | Your own feature | for example a column that is 1 in rush hour (7–9 and 16–19) and 0 otherwise |
 
-**Compare:** left menu **Experiments** → `bike-demand`. Click the `mae` column header to sort.
-Tick 2 or more runs → **Compare**: settings and scores side by side.
+**Compare:** left menu **Experiments** → `bike-demand`.
+- Click the `mae` column header to sort: best run on top.
+- Switch from the table to the **Chart** view: one bar chart for `mae`, one bar per run.
+- Tick 2 or more runs → **Compare**: settings and scores side by side.
 
 **Check:** you have several runs, and you can say which one has the lowest `mae` and why you think it won.
 
