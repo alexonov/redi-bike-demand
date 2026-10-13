@@ -16,7 +16,7 @@ Students work on `main` (GUIDE.md, CHEATSHEET.md, empty train.py). This branch h
 1. Run `1_train.py` with `MODEL="forest"`, `FEATURES="hour_onehot"`, `MAX_DEPTH=15` → validation MAE 46.8.
    (Optional: also `linear`/`raw` → 145.1, to show the table of runs.)
 2. Run `2_register.py` → version 1 of `workspace.default.bike_demand`, label `champion`.
-   Show it: left menu **Experiments** → run → **Register model** button area, or **Catalog** → workspace → default → Models.
+   Show it: left menu **Catalog** → `workspace` → `default` → **Models** tab → `bike_demand` → version 1 with the `champion` alias.
 3. Run `3_predict.py` → table of hours, actual vs predicted.
 4. Run `4_new_month.py` → July: champion 53.8 vs retrained 39.9 → label moves to version 2.
 
