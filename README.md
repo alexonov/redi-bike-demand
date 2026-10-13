@@ -1,34 +1,26 @@
-# Bike demand: from laptop model to a model a business can use
+# Teacher demo branch — not for students
 
-ReDi School Hamburg, ML course, session 9: Databricks, MLflow and the ML workflow.
+Students work on `main` (GUIDE.md, CHEATSHEET.md, empty train.py). This branch holds the teacher's material.
 
-**The task.** A bike-rental company needs to know how many bikes will be rented each hour,
-so it can move bikes to the right stations. You build that forecast, keep a record of
-everything you try, pick a winner, and update it when new data arrives.
-
-**The data.** Hourly bike rentals from Capital Bikeshare (Washington DC, 2011-2012), with
-weather, hour, weekday and season. 17,379 rows. Already in `data/bike_sharing_hourly.csv`.
-Original dataset: Fanaee-T and Gama (2013), UCI Machine Learning Repository, CC BY 4.0; downloaded via OpenML.
-
-## Start here
-
-**Follow [GUIDE.md](GUIDE.md)** step by step: setup, the exercises, an MLflow cheat sheet, and fixes for common problems.
-
-## The files
-
-| File | What it does |
+| File | Use |
 |---|---|
-| `1_train.py` | Trains one model and logs it to MLflow as one run. **You fill in the TODOs.** |
-| `2_register.py` | Finds the run with the lowest error, registers its model, labels it `champion`. |
-| `3_predict.py` | Loads "the champion" by name and forecasts a June working day. |
-| `4_new_month.py` | July data arrives. Retrains, compares with the champion, moves the label if the new one is better. |
-| `5_from_scratch.py` | Write a full MLflow run yourself, tuning a decision tree. **You fill in the TODOs.** |
-| `bikes.py` | Shared helpers: data, features, time split. Optional: your own features under `"mine"`. |
-| `solution/` | Finished versions of the files with TODOs. |
+| `train_reference.py` | What a student's `train.py` looks like after the guide, plus three part-11 variants. Expected MAE: linear 122.5, tree depth 5 97.2, tree depth 10 92.0, forest depth 10 88.5 |
+| `1_train.py` | Demo: train one model on a richer feature set (`bikes.py`), log it. Settings at the top |
+| `2_register.py` | Demo: register the best run's model, label it `champion` |
+| `3_predict.py` | Demo: load "the champion" by name, forecast an average June work day |
+| `4_new_month.py` | Demo: July arrives; retrain, compare with the champion, move the label if better |
+| `bikes.py` | Helpers for the demo scripts |
 
-## Read next
+## Demo flow (≈10 min, on the projector)
 
-Chip Huyen, *Designing Machine Learning Systems* (O'Reilly, 2022):
-- Chapter 1: why ML in a business is different from ML in a course
-- Chapter 6: model development, offline evaluation, and experiment tracking
-- Chapters 8-9: why models go stale and how teams retrain them
+1. Run `1_train.py` with `MODEL="forest"`, `FEATURES="hour_onehot"`, `MAX_DEPTH=15` → validation MAE 46.8.
+   (Optional: also `linear`/`raw` → 145.1, to show the table of runs.)
+2. Run `2_register.py` → version 1 of `workspace.default.bike_demand`, label `champion`.
+   Show it: left menu **Experiments** → run → **Register model** button area, or **Catalog** → workspace → default → Models.
+3. Run `3_predict.py` → table of hours, actual vs predicted.
+4. Run `4_new_month.py` → July: champion 53.8 vs retrained 39.9 → label moves to version 2.
+
+Note: the demo uses a different split (validation Apr–Jun 2012) and features than the students' `train.py`
+(validation Jan–Jun 2012), so its MAEs are not comparable with the students'.
+
+Data: Capital Bikeshare hourly rentals, Washington DC, 2011–2012 (Fanaee-T and Gama, UCI Machine Learning Repository, CC BY 4.0).
