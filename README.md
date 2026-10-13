@@ -8,6 +8,7 @@ everything you try, pick a winner, and update it when new data arrives.
 
 **The data.** Hourly bike rentals from Capital Bikeshare (Washington DC, 2011-2012), with
 weather, hour, weekday and season. 17,379 rows. Already in `data/bike_sharing_hourly.csv`.
+Original dataset: Fanaee-T and Gama (2013), UCI Machine Learning Repository, CC BY 4.0; downloaded via OpenML.
 
 ## Setup (once)
 
